@@ -1,8 +1,10 @@
 AC_PREREQ([2.50])
-AC_INIT([guilecrypt], [0.1])
-AM_INIT_AUTOMAKE
+AC_INIT([guilecrypt], 0.1)
 
-AC_CONFIG_FILES(Makefile)
+AM_INIT_AUTOMAKE([-Wall])
+LT_INIT()
+
+AC_CONFIG_FILES([Makefile] [src/Makefile])
 
 AC_CONFIG_SRCDIR([src/hash.c])
 
