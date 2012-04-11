@@ -33,10 +33,13 @@
 	    MD_CRC24_RFC2440	
 	    MD_WHIRLPOOL		
 	    MD_TIGER1		
-	    MD_TIGER2		
+	    MD_TIGER2
+
+	    gcrypt:quick-hash
 	    ))
 
-(dynamic-call "gcrypt_hash_init" (dynamic-link "libguile-crypt"))
+(eval-when (load eval compile)
+  (load-extension "libguile-crypt" "gcrypt_hash_init"))
 
 (define MD_NONE			 0)
 (define MD_MD5			 1)
