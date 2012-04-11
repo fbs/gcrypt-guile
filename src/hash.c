@@ -72,6 +72,14 @@ scm_gcrypt_quick_hash(SCM data_bv, SCM scm_algo)
 
 void gcrypt_hash_init()
 {
+  /* Version check should be the very first call because it
+makes sure that important subsystems are intialized. */
+  if (!gcry_check_version (GCRYPT_VERSION))
+    {
+      fputs ("libgcrypt version mismatch\n", stderr);
+      exit (2);
+    }
+  
   scm_c_define_gsubr ("gcrypt:quick-hash", 2, 0, 0, scm_gcrypt_quick_hash);
 }
  
