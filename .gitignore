@@ -11,3 +11,4 @@ compile
 depcomp
 install-sh
 missing
+*.x
