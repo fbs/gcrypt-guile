@@ -4,23 +4,30 @@
 #include <gcrypt.h>
 #include <libguile.h>
 
-
-static void
-inner_main (void *closure, int argc, char **argv)
+SCM
+scm_gcrypt_quick_hash(SCM scm_str, SCM scm_algo)
+#define FUNC_NAME "gcrypt:quick-hash"
 {
-  /* module initializations would go here */
-  scm_shell (argc, argv);
+  SCM_ASSERT(scm_string_p(scm_str), scm_str, SCM_ARG1, FUNC_NAME);
+  SCM_ASSERT(scm_integer_p(scm_algo), scm_algo, SCM_ARG2, FUNC_NAME);
+
+  int		algo	= scm_to_int(scm_algo);
+  char *	str	= scm_to_locale_string(scm_str);
+  int		dig_len = gcry_md_get_algo_dlen(algo);
+  SCM		bv	= scm_c_make_bytevector (dig_len);
+  char *	digest	= (char *) SCM_BYTEVECTOR_CONTENTS(bv);
+
+  gcry_md_hash_buffer (algo, digest, str, strlen(str));
+
+  return bv;
 }
 
-int
-main (int argc, char **argv)
+#undef FUNC_NAME
+
+void gcrypt_hash_init()
 {
-  if (!gcry_check_version (NULL))
-    {
-      fprintf(stderr, "libgcrypt version mismatch\n");
-      exit(EXIT_FAILURE);
-    }
-      
-  scm_boot_guile (argc, argv, inner_main, 0);
-  return 0;
+  scm_c_define_gsubr ("gcrypt:quick-hash", 2, 0, 0, scm_gcrypt_quick_hash);
 }
+ 
+
+
