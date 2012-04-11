@@ -27,5 +27,7 @@ GUILE_SITE_DIR
 AM_PATH_LIBGCRYPT(1)
 PKG_CHECK_MODULES([GUILE], [guile-2.0])
 
+AM_SILENT_RULES()
+
 AC_CONFIG_FILES([Makefile] [src/Makefile] [modules/Makefile])
 AC_OUTPUT
