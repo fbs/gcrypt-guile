@@ -16,7 +16,18 @@ scm_gcrypt_quick_hash(SCM scm_str, SCM scm_algo)
   int		dig_len = gcry_md_get_algo_dlen(algo);
   SCM		bv	= scm_c_make_bytevector (dig_len);
   char *	digest	= (char *) SCM_BYTEVECTOR_CONTENTS(bv);
-
+  
+  gcry_error_t  err	= 0;
+  
+  err = gcry_md_test_algo(algo);  
+  if ( err )
+    {
+      SCM		err_msg;
+      err_msg = scm_from_latin1_string ("Invalid digest algorithm: ~A");
+      scm_error_scm (scm_misc_error_key, scm_from_latin1_string("gcrypt:quick-hash"),
+		     err_msg, scm_list_1(scm_algo), SCM_BOOL_F);
+    }
+  
   gcry_md_hash_buffer (algo, digest, str, strlen(str));
 
   return bv;
