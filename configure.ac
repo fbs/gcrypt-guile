@@ -1,10 +1,11 @@
 AC_PREREQ([2.50])
 AC_INIT([guilecrypt], 0.1)
+AM_SILENT_RULES([yes])
 AC_CONFIG_SRCDIR([src/hash.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall])
 
-LT_INIT
+LT_INIT()
 
 AC_LANG([C])
 AC_PROG_CC
@@ -26,8 +27,6 @@ GUILE_SITE_DIR
 
 AM_PATH_LIBGCRYPT(1)
 PKG_CHECK_MODULES([GUILE], [guile-2.0])
-
-AM_SILENT_RULES()
 
 AC_CONFIG_FILES([Makefile] [src/Makefile] [modules/Makefile])
 AC_OUTPUT
