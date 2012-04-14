@@ -9,7 +9,7 @@ scm_DATA = $(SOURCES)
 #godir = $(scmdir)
 #go_DATA = $(GOBJECTS)
 
-CLEANFILES = $(GOBJECTS)
+CLEANFILES = $(GOBJECTS) $(scm_DATA)
 EXTRA_DIST = $(scm_DATA)
 
 .scm.go:
