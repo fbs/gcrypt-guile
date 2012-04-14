@@ -1,0 +1,20 @@
+- Write tests!
+- Implement the last hash related functions.
+- Implement the other stuff from libgcrypt.
+- Fix bugs like
+(begin
+	(gcrypt:md-close (gcrypt:md-open 8))
+	(gc))
+	=> segv because the gc calls close again on an object thats already closed.
+or
+
+	(define x (gcrypt:md-open  8))
+	x => this works
+	(gcrypt:md-close x)
+	x => segv
+
+	Maybe add a extra datatype to the smob? Like
+	struct {
+	       gcry_md_hd_t;
+	       int status;
+	       }
