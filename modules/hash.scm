@@ -35,11 +35,17 @@
 	    MD_TIGER1		
 	    MD_TIGER2
 
+	    gcrypt:md-open
+	    gcrypt:md-reset
+	    gcrypt:md-write
+	    gcrypt:md-read
+	    gcrypt:md-close
+	    gcrypt:md-algo->name
 	    gcrypt:quick-hash
 	    ))
 
 (eval-when (load eval compile)
-  (load-extension "libguile-crypt" "gcrypt_hash_init"))
+  (load-extension "libguile-crypt" "scm_gcrypt_hash_init"))
 
 (define MD_NONE			 0)
 (define MD_MD5			 1)
@@ -59,4 +65,7 @@
 (define MD_WHIRLPOOL		 305) 
 (define MD_TIGER1		 306) 
 (define MD_TIGER2		 307) 
+
+(define MD_FLAG_SECURE 1)
+(define MD_FLAG_HMAC   2)
 
