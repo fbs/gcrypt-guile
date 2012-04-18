@@ -39,14 +39,17 @@
 		MD_FLAG_SECURE
 		MD_FLAG_HMAC
 
-		make-hash
-		write-hash
-		read-hash
-		reset-hash
+		algo-digest-length
+		hash-bytevector
 		algo->name
 		name->algo
-		algo->dlen
-		
+		;; c functions
+		open
+		close
+		read
+		write
+		reset
+		enable
 		))
 
 ;; Constants
@@ -69,73 +72,14 @@
 (define MD_TIGER1		 306) 
 (define MD_TIGER2		 307) 
 
+(define MD_FLAG_SECURE 1)
+(define MD_FLAG_HMAC   2)
+
 (eval-when (load eval compile)
-	   (define libgcrypt (dynamic-link "libgcrypt")))
+	   (define libgcrypt (dynamic-link "/data/projects/lib-guile/guilecrypt/src/.libs/libguile-crypt"))
+	   (dynamic-call "scm_gcrypt_hash_init" libgcrypt))
 
-;; scheme api
-(define* (make-hash #:key (algorithm MD_NONE) (message (make-bytevector 0)))
-  (if (not (bytevector? message))
-      (error "Expected bytevector" message)
-      (if (not (valid-algorithm? algorithm))
-	  (error "Invalid algorithm" algorithm)
-	  (make-hash-type algorithm message))))
-
-(define (write-hash hash msg)
-  (if (not (bytevector? msg))
-      (error "Expected bytevector" msg)
-      (if (not (hash? hash))
-	  (error "Expected hash-type" hash)
-	  (begin (set-message! hash (bytevector-concat (message hash)
-						       msg))
-		 msg))))
-
-(define* (read-hash hash #:optional algo)
-  (if (not (hash? hash))
-      (error "Expected hash-type" hash)
-      (hash-bytevector (algorithm hash) (message hash))))
-
-(define (reset-hash hash)
-  (if (not (hash? hash))
-      (error "Expected hash-type" hash)
-      (set-message! hash (make-bytevector 0))))
-
-;; internal data type
-(define (print-hash-type hash port)
-  (format port "#<~A HASH>" (algo->name (algorithm hash))) port)
-
-(define hash-type (make-record-type "HASH"
-				    '(algorithm
-				      message)
-				    print-hash-type))
-
-(define make-hash-type (record-constructor hash-type))
-(define hash? (record-predicate hash-type))
-(define message (record-accessor hash-type 'message))
-(define algorithm (record-accessor hash-type 'algorithm))
-(define set-message! (record-modifier hash-type 'message))
-(define set-algorithm! (record-modifier hash-type 'algorithm))
-
-;; internal functions
-
-;; Combine two bytevectors in a newly allocated bytevector. 
-(define (bytevector-concat bv1 bv2)
-  (if (not (and (bytevector? bv1) (bytevector? bv2)))
-      (error "Expected bytevectors" bv1 bv2)
-      (let* ([lenbv1 (bytevector-length bv1)]
-	     [lenbv2 (bytevector-length bv2)]
-	     [dest (make-bytevector (+ lenbv1 lenbv2))])
-	(begin
-	  (bytevector-copy! bv1 0 dest 0 lenbv1)
-	  (bytevector-copy! bv2 0 dest lenbv1 lenbv2)
-	  dest))))
-
-(define (valid-algorithm? algorithm)
-  (and (number? algorithm)
-       (exact? algorithm)
-       (< 0 (algo->dlen algorithm))))
-
-;; C api wrappers
-(define (algo->dlen algo)
+(define (algo-digest-length algo)
   (let ([algo_dlen_p
 	 (pointer->procedure int
 			     (dynamic-func "gcry_md_get_algo_dlen" libgcrypt)
@@ -147,7 +91,7 @@
 	 (pointer->procedure int
 			     (dynamic-func "gcry_md_hash_buffer" libgcrypt)
 			     (list int '* '* size_t))]
-	[digest_len (algo->dlen algo)])
+	[digest_len (get-digest-length algo)])
     (if (= 0 digest_len)
 	(error "Invalid digest" algo)
 	(let ([hash_bv (make-bytevector digest_len)])
@@ -156,6 +100,7 @@
 				(bytevector->pointer bv)
 				(bytevector-length bv))
 		 hash_bv)))))
+
 
 (define (algo->name algo)
   (let ([algo_name (pointer->procedure '*
