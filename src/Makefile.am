@@ -1,21 +1,19 @@
-AM_CFLAGS  = $(GCC_FLAGS) $(CSTD)
+AM_CFLAGS = -Wall -Werror -Wcast-align -Wpointer-arith -Wformat -Wformat-security
+AM_CFLAGS += -std=gnu99
+
 AM_LDFLAGS = $(LIBGCRYPT_LIBS) $(GUILE_LIBS)
 
+lib_LTLIBRARIES = libgcrypt-guile.la
 
+libgcrypt_guile_la_CFLAGS = $(AM_CFLAGS) $(GUILE_CFLAGS) $(LIBGCRYPT_CLAGS)
+libgcrypt_guile_la_LIBADD = $(LIBGCRYPT_LIBS) $(GUILE_LTLIBS)
 
-#extensiondir = $(GUILE_EXTENSION_DIR)
-lib_LTLIBRARIES = libguile-crypt.la
+libgcrypt_guile_la_SOURCES = hash.c
 
-libguile_crypt_la_SOURCES = \
-	hash.c
-
-libguile_crypt_la_CFLAGS  = $(LIBGCRYPT_CFLAGS) $(GUILE_CFLAGS) $(AM_CFLAGS)
-libguile_crypt_la_LIBADD  = $(LIBGCRYPT_LIBS)   $(GUILE_LTLIBS)
-
-DOT_X_FILES = $(libguile_crypt_la_SOURCES:.c=.x)
-CLEANFILES = $(DOT_X_FILES)
-BUILT_SOURCES = $(DOT_X_FILES)
-SUFFIXES = .x 
+SNARF_FILES = $(libgcrypt_guile_la_SOURCES:.c=.x)
+CLEANFILES = $(SNARF_FILES)
+BUILT_SOURCES = $(SNARF_FILES)
+SUFFIXES = .x
 
 .c.x:
-	guile-snarf $(libguile_crypt_la_CFLAGS)  "$<" > "$@" || { rm "$@"; false; }
+	guile-snarf $(libgcrypt_guile_la_CFLAGS) "$<" > "$@" || { rm "$@"; false; }
