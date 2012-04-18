@@ -1,5 +1,5 @@
 AC_PREREQ ([2.50])
-AC_INIT([gcrypt-guile], 1.0)
+AC_INIT([gcrypt-guile], 0.2)
 
 AM_SILENT_RULES([yes])
 
