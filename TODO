@@ -1,20 +1,9 @@
 - Write tests!
-- Implement the last hash related functions.
 - Implement the other stuff from libgcrypt.
-- Fix bugs like
-(begin
-	(gcrypt:md-close (gcrypt:md-open 8))
-	(gc))
-	=> segv because the gc calls close again on an object thats already closed.
-or
-
-	(define x (gcrypt:md-open  8))
-	x => this works
-	(gcrypt:md-close x)
-	x => segv
-
-	Maybe add a extra datatype to the smob? Like
-	struct {
-	       gcry_md_hd_t;
-	       int status;
-	       }
+- Fix bugs.
+- Change modules/ to scm/
+- Fix some bugs in the build setup
+  - Not removing the directory in guile_site
+  - Not building all the .go
+- Fix the README to make clear stuff isnt crypto secure, just for the fun & education.
+- Get some proper error msgs throughout the program.
