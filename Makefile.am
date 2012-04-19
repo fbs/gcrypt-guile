@@ -1,3 +1,2 @@
-SUBDIRS = src modules
-SUFFIXES = .x
+SUBDIRS = src 
 AUTOMAKE_OPTIONS = subdir-objects
