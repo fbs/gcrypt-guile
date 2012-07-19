@@ -16,6 +16,7 @@
 ;;   License along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 (define-module (gcrypt random)
+  #:version    (1 0)
   #:use-module (system foreign)
   #:use-module (rnrs   bytevectors)
   #:export (
