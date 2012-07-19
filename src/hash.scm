@@ -73,7 +73,7 @@
 	   (define libgcrypt (dynamic-link "libgcrypt")))
 
 ;; scheme api
-(define* (make-hash #:key (algorithm MD_NONE) (message (make-bytevector 0)))
+(define* (make-hash #:key (algorithm MD_SHA256) (message (make-bytevector 0)))
   (if (not (bytevector? message))
       (error "Expected bytevector" message)
       (if (not (valid-algorithm? algorithm))
