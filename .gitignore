@@ -13,3 +13,4 @@ depcomp
 install-sh
 missing
 *.x
+m4/
