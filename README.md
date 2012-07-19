@@ -17,19 +17,19 @@ Git-clone the repo and build.
 
 Usage
 -----
-
-Note that this could change over time. 
-
-	(use-modules (gcrypt hash)
-		     (gcrypt random)
-		     (rnrs bytevectors))
+	(use-modules 
+		(gcrypt hash)
+		(gcrypt random)
+		(rnrs bytevectors))
 
 	(randomize 10 WEAK_RANDOM)
-	(define sha256 (make-hash #:algorithm MD_SHA256))
-	sha256 => #<SHA256 HASH>
-	(write-hash sha256 (string->utf8 "hello world"))
-	(read-hash sha256) => #vu8(185 77 39 185 147 ... 239 205 233)
-	(reset-hash sha256)
+	(define hash (make-hash MD_MD5))
+	(update! hash "hello world")
+	(digest->hex-string (digest hash)) 
+		=> "5eb63bbbe01eeed093cb22bb8f5acdc3"
+	(change-digest-algorithm hash MD_SHA1)
+	(digest->hex-string (digest hash))
+		=> "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed"
 	 
 Dependencies
 ------------
