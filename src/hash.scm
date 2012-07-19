@@ -18,8 +18,7 @@
 (define-module (gcrypt hash)
   #:use-module (system foreign)
   #:use-module (rnrs   bytevectors)
-  #:export     (
-		MD_NONE
+  #:export     (MD_NONE
 		MD_MD5
 		MD_SHA1
 		MD_RDM160
@@ -39,15 +38,16 @@
 		MD_FLAG_SECURE
 		MD_FLAG_HMAC
 
+		hash?
 		make-hash
-		write-hash
-		read-hash
-		reset-hash
-		algo->name
-		name->algo
-		algo->dlen
-		
-		))
+		change-digest-algorithm
+		update!
+		digest
+		digest->hex-string
+		reset-buffer!
+		quick-hash
+		blocksize
+		algorithm->name))
 
 ;; Constants
 (define MD_NONE			 0)
@@ -73,46 +73,81 @@
 	   (define libgcrypt (dynamic-link "libgcrypt")))
 
 ;; scheme api
-(define* (make-hash #:key (algorithm MD_SHA256) (message (make-bytevector 0)))
-  (if (not (bytevector? message))
-      (error "Expected bytevector" message)
-      (if (not (valid-algorithm? algorithm))
-	  (error "Invalid algorithm" algorithm)
-	  (make-hash-type algorithm message))))
+(define* (make-hash #:optional (algorithm MD_SHA256))
+  "Create a new hash-object using @var{algorithm} as hash algorithm"
+  (if (not (valid-algorithm? algorithm))
+      (error "make-hash: invalid algorithm" algorithm)
+      (make-hash-type algorithm (make-bytevector 0))))
 
-(define (write-hash hash msg)
-  (if (not (bytevector? msg))
-      (error "Expected bytevector" msg)
-      (if (not (hash? hash))
-	  (error "Expected hash-type" hash)
-	  (begin (set-message! hash (bytevector-concat (message hash)
-						       msg))
-		 msg))))
+(define (update! hash data)
+  "Update the buffer of hash-object @var{hash} with string or bytevector @var{data}.
+The return value is @var{data}."
+  (let ([msg (cond [(string? data) (string->utf8 data)]
+		   [(bytevector? data) data]
+		   [else (error "write-hash: expected string or bytevector, got" data)])])
+    (set-buffer! hash (bytevector-concat (buffer hash) msg))
+    data))
 
-(define* (read-hash hash #:optional algo)
-  (if (not (hash? hash))
-      (error "Expected hash-type" hash)
-      (hash-bytevector (algorithm hash) (message hash))))
+(define (change-digest-algorithm hash algorithm)
+  "Use @var{algo} as digest algorithm, @var{algo} must be a valid algorithm."
+  (if (valid-algorithm? algorithm)
+      (set-algorithm! hash algorithm)
+      (error "change-digest-algorithm: invalid algorithm" algorithm)))
 
-(define (reset-hash hash)
-  (if (not (hash? hash))
-      (error "Expected hash-type" hash)
-      (set-message! hash (make-bytevector 0))))
+(define (digest hash)
+  "Calculate the digest (of data passed using write-hash).
+The return value is the digest as bytevector."
+  (hash-bytevector (algorithm hash) (buffer hash)))
+
+(define (digest->hex-string digest)
+  "Convert message digest @var{digest} to a hex-string.
+ #vu8(1 11 16) -> \"1b10\"" 
+  (string-concatenate (map (lambda (x) (number->string x 16)) 
+			   (bytevector->u8-list digest))))
+
+(define (reset-buffer! hash)
+  "Reset the buffer of hash-object @var{hash}."
+  (set-buffer! hash (make-bytevector 0)))
+
+(define (quick-hash algorithm data)
+  "Calculate the digest of a string or bytevector @var{data}."
+  (let ([dd (cond [(string? data) (string->utf8 data)]
+		  [(bytevector? data) data]
+		  [else (error "quick-hash: expected string or bytevector, got" data)])])
+    (if (valid-algorithm? algorithm)
+	(hash-bytevector algorithm dd)
+	(error "quick-hash: invalid algorithm " algorithm))))
+
+(define (digest-size obj)
+  "Return the digest size of the hash algorithm @var{obj}. @var{obj} must be either an
+hash-object or a hash function name (MD_*)."
+  (cond [(hash? obj) (algo->dlen (algorithm obj))]
+	[(valid-algorithm? obj) (algo->dlen obj)]
+	[else (error "blocksize: expected hash-object or hash-name, got" obj)]))
+
+(define (hash? obj)
+  "Return #t if @var{obj} is an hash-object, #f otherwise."
+  (record-predicate hash-type))
+
+(define (algorithm->name obj)
+  "Lookup the name of the used algorithm."
+  (if (not (valid-algorithm? obj))
+      (error "algorithm->name: invalid algorithm" algorithm)
+      (algo->name obj)))
 
 ;; internal data type
-(define (print-hash-type hash port)
-  (format port "#<~A HASH>" (algo->name (algorithm hash))) port)
-
 (define hash-type (make-record-type "HASH"
 				    '(algorithm
-				      message)
-				    print-hash-type))
+				      buffer)
+				    (lambda (hash port)
+				      (format port 
+					      "#<~A HASH>" 
+					      (algo->name (algorithm hash))))))
 
 (define make-hash-type (record-constructor hash-type))
-(define hash? (record-predicate hash-type))
-(define message (record-accessor hash-type 'message))
+(define buffer (record-accessor hash-type 'buffer))
 (define algorithm (record-accessor hash-type 'algorithm))
-(define set-message! (record-modifier hash-type 'message))
+(define set-buffer! (record-modifier hash-type 'buffer))
 (define set-algorithm! (record-modifier hash-type 'algorithm))
 
 ;; internal functions
