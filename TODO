@@ -1,7 +1,6 @@
 - Write tests!
 - Implement the other stuff from libgcrypt.
 - Fix bugs.
-- Change modules/ to scm/
 - Fix some bugs in the build setup
   - Not removing the directory in guile_site
   - Not building all the .go

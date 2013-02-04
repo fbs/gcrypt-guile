@@ -1,7 +1,7 @@
 AC_PREREQ ([2.50])
 AC_INIT([gcrypt-guile], 0.2)
 AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_SRCDIR([modules/hash.scm])
+AC_CONFIG_SRCDIR([gcrypt/hash.scm])
 AM_SILENT_RULES([yes])		
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -27,6 +27,7 @@ fi
 AM_PATH_LIBGCRYPT(1)
 PKG_CHECK_MODULES([GUILE], [guile-2.0])
 
-AC_CONFIG_FILES([Makefile] [modules/Makefile])
+AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([env], [chmod +x env])
 
 AC_OUTPUT()
