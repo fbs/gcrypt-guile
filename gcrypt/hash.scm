@@ -208,6 +208,7 @@
          (digest (if (null-pointer? ptr)
                      (error 'md-read)
                      (pointer->bytevector ptr (digest-size algorithm)))))
+    (set-md-finalized?! md #t)
     (if copy
         (bytevector-copy digest)
         digest)))
