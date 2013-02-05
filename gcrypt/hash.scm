@@ -126,7 +126,7 @@ hash-object or a hash function name (MD_*)."
 
 (define (hash? obj)
   "Return #t if @var{obj} is an hash-object, #f otherwise."
-  (record-predicate hash-type))
+  ((record-predicate hash-type) obj))
 
 (define (algorithm->name obj)
   "Lookup the name of the used algorithm."
