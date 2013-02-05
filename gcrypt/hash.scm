@@ -1,4 +1,5 @@
 ;;   Copyright (C) 2012 bas smit (fbs)
+;;   Copyright (C) 2013 Daniel Hartwig <mandyke@gmail.com>
   
 ;;   This file is part of Libgcrypt-guile.
   
@@ -20,6 +21,7 @@
   #:use-module (gcrypt internal)
   #:use-module (system foreign)
   #:use-module (rnrs   bytevectors)
+  #:use-module (srfi srfi-9) ; define-record-type
   #:export     (MD_NONE
 		MD_MD5
 		MD_SHA1
@@ -39,6 +41,24 @@
 		MD_TIGER2
 		MD_FLAG_SECURE
 		MD_FLAG_HMAC
+
+                MD_FLAG_SECURE
+                MD_FLAG_HMAC
+
+                md?
+                md-open?
+                md-finalized?
+                md-open
+                md-close
+                md-enable
+                md-set-key
+                md-reset
+                md-copy
+                md-write
+                md-read
+                md-algorithm
+                md-secure?
+                md-enabled?
 
 		hash?
 		make-hash
@@ -71,6 +91,152 @@
 (define MD_TIGER1		 306) 
 (define MD_TIGER2		 307) 
 
+(define MD_FLAG_SECURE 1)
+(define MD_FLAG_HMAC 2)
+
+
+;;;
+;;; Message digest contexts
+;;;
+
+(define-record-type <gcrypt-md>
+  (make-md pointer open? finalized?)
+  md?
+  (pointer md-pointer)
+  (open? md-open? set-md-open?!)
+  (finalized? md-finalized? set-md-finalized?!))
+
+(define-foreign-procedure
+  (gcry_md_close (h '*) -> void)
+  #f)
+
+(define (md-close md)
+  (when (md-open? md)
+    (set-md-open?! md #f)
+    (gcry_md_close (md-pointer md))))
+
+(define md-guardian (make-guardian))
+
+(define (pump-md-guardian)
+  (let ((md (md-guardian)))
+    (if md
+        (begin
+          (md-close md)
+          (pump-md-guardian)))))
+
+(add-hook! after-gc-hook pump-md-guardian)
+
+(define-foreign-procedure
+  (gcry_md_open (h '*) (algo int) (mode unsigned-int) -> int)
+  #f)
+
+(define* (md-open algorithm #:optional (mode 0))
+  (let ((out-md (make-c-struct (list '*) (list %null-pointer))))
+    (unless (zero? (gcry_md_open out-md algorithm mode))
+      (error 'md-open))
+    (let ((md (make-md (dereference-pointer out-md) #t #f)))
+      (md-guardian md)
+      md)))
+
+(define (assert-live-md! md)
+  (if (not (md-open? md))
+      (error "message digest already closed" md)))
+
+(define-foreign-procedure
+  (gcry_md_enable (h '*) (algo int) -> int)
+  #f)
+
+(define (md-enable md algorithm)
+  (assert-live-md! md)
+  (unless (zero? (gcry_md_enable (md-pointer md) algorithm))
+    (error 'md-enable)))
+
+(define-foreign-procedure
+  (gcry_md_setkey (h '*) (key '*) (keylen size_t) -> int)
+  #f)
+
+(define (md-set-key md bv)
+  (assert-live-md! md)
+  (gcry_md_setkey (md-pointer md)
+                  (bytevector->pointer bv)
+                  (bytevector-length bv)))
+
+(define-foreign-procedure
+  (gcry_md_reset (h '*) -> void)
+  #f)
+
+(define (md-reset md)
+  (assert-live-md! md)
+  (set-md-finalized?! md #f)
+  (gcry_md_reset (md-pointer md)))
+
+(define-foreign-procedure
+  (gcry_md_copy (handle_dst '*) (handle_src '*) -> int)
+  #f)
+
+(define (md-copy md)
+  (let ((out-dst (make-c-struct (list '*) (list %null-pointer))))
+    (unless (zero? (gcry_md_copy out-dst (md-pointer md)))
+      (error 'md-copy))
+    (let ((dst (make-md (dereference-pointer out-dst)
+                        #t
+                        (md-finalized? md))))
+      (md-guardian dst)
+      dst)))
+
+(define-foreign-procedure
+  (gcry_md_write (h '*) (buffer '*) (length size_t) -> void)
+  #f)
+
+(define* (md-write md bv #:optional (offset 0) (length #f))
+  (assert-live-md! md)
+  (when (md-finalized? md)
+    (error "message digest already finalized" md))
+  (gcry_md_write (md-pointer md)
+                 (bytevector->pointer bv offset)
+                 (or length (- (bytevector-length bv)
+                               offset))))
+
+(define-foreign-procedure
+  (gcry_md_read (h '*) (algo int) -> '*)
+  #f)
+
+(define* (md-read md #:optional (algorithm (md-algorithm md)) #:key
+                  (copy #t))
+  (assert-live-md! md)
+  (let* ((ptr (gcry_md_read (md-pointer md) algorithm))
+         (digest (if (null-pointer? ptr)
+                     (error 'md-read)
+                     (pointer->bytevector ptr (digest-size algorithm)))))
+    (if copy
+        (bytevector-copy digest)
+        digest)))
+
+(define-foreign-procedure
+  (gcry_md_get_algo (h '*) -> int)
+  #f)
+
+(define (md-algorithm md)
+  (assert-live-md! md)
+  (gcry_md_get_algo (md-pointer md)))
+
+(define-foreign-procedure
+  (gcry_md_is_secure (h '*) -> int)
+  #f)
+
+(define (md-secure? md)
+  (assert-live-md! md)
+  (not (zero? (gcry_md_is_secure (md-pointer md)))))
+
+(define-foreign-procedure
+  (gcry_md_is_enabled (h '*) (algo int) -> int)
+  #f)
+
+(define (md-enabled? md algorithm)
+  (assert-live-md! md)
+  (not (zero? (gcry_md_is_enabled (md-pointer md)))))
+
+
 ;; scheme api
 (define* (make-hash #:optional (algorithm MD_SHA256))
   "Create a new hash-object using @var{algorithm} as hash algorithm"
