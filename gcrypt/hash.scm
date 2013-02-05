@@ -39,8 +39,6 @@
 		MD_WHIRLPOOL
 		MD_TIGER1
 		MD_TIGER2
-		MD_FLAG_SECURE
-		MD_FLAG_HMAC
 
                 MD_FLAG_SECURE
                 MD_FLAG_HMAC
