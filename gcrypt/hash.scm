@@ -17,6 +17,7 @@
 
 (define-module (gcrypt hash)
   #:version    (1 0)
+  #:use-module (gcrypt internal)
   #:use-module (system foreign)
   #:use-module (rnrs   bytevectors)
   #:export     (MD_NONE
@@ -69,9 +70,6 @@
 (define MD_WHIRLPOOL		 305) 
 (define MD_TIGER1		 306) 
 (define MD_TIGER2		 307) 
-
-(eval-when (load eval compile)
-	   (define libgcrypt (dynamic-link "libgcrypt")))
 
 ;; scheme api
 (define* (make-hash #:optional (algorithm MD_SHA256))
@@ -171,39 +169,43 @@ hash-object or a hash function name (MD_*)."
        (< 0 (algo->dlen algorithm))))
 
 ;; C api wrappers
+(define-foreign-procedure
+  (gcry_md_get_algo_dlen (algo int) -> unsigned-int)
+  #f)
+
 (define (algo->dlen algo)
-  (let ([algo_dlen_p
-	 (pointer->procedure int
-			     (dynamic-func "gcry_md_get_algo_dlen" libgcrypt)
-			     (list int))])
-    (algo_dlen_p algo)))
+  (gcry_md_get_algo_dlen algo))
+
+(define-foreign-procedure
+  (gcry_md_hash_buffer (algo int)
+                       (digest '*)
+                       (buffer '*)
+                       (length size_t)
+                       ->
+                       void)
+  #f)
 
 (define (hash-bytevector algo bv)
-  (let ([algo_hash_buf
-	 (pointer->procedure int
-			     (dynamic-func "gcry_md_hash_buffer" libgcrypt)
-			     (list int '* '* size_t))]
-	[digest_len (algo->dlen algo)])
+  (let ([digest_len (algo->dlen algo)])
     (if (= 0 digest_len)
 	(error "Invalid digest" algo)
-	(let ([hash_bv (make-bytevector digest_len)])
-	  (begin (algo_hash_buf algo
-				(bytevector->pointer hash_bv)
-				(bytevector->pointer bv)
-				(bytevector-length bv))
-		 hash_bv)))))
+	(let ([digest (make-bytevector digest_len)])
+	  (gcry_md_hash_buffer algo
+                               (bytevector->pointer digest)
+                               (bytevector->pointer bv)
+                               (bytevector-length bv))
+          digest))))
+
+(define-foreign-procedure
+  (gcry_md_algo_name (algo int) -> '*)
+  #f)
 
 (define (algo->name algo)
-  (let ([algo_name (pointer->procedure '*
-				       (dynamic-func "gcry_md_algo_name"
-						     libgcrypt)
-				       (list int))])
-    (pointer->string (algo_name algo))))
+  (pointer->string (gcry_md_algo_name algo)))
+
+(define-foreign-procedure
+  (gcry_md_map_name (name '*) -> int)
+  #f)
 
 (define (name->algo name)
-  (let ([name_algo (pointer->procedure int
-				       (dynamic-func "gcry_md_map_name"
-						     libgcrypt)
-				       (list '*))])
-    (name_algo (string->pointer name))))
-
+  (gcry_md_map_name (string->pointer name)))

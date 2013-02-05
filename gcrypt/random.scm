@@ -17,6 +17,7 @@
 
 (define-module (gcrypt random)
   #:version    (1 0)
+  #:use-module (gcrypt internal)
   #:use-module (system foreign)
   #:use-module (rnrs   bytevectors)
   #:export (
@@ -27,12 +28,13 @@
 	    randomize
 	    create-nonce))
 
-(eval-when (load eval compile)
-	   (define libgcrypt (dynamic-link "libgcrypt")))
-
 (define WEAK_RANDOM		 0)
 (define STRONG_RANDOM		 1)
 (define VERY_STRONG_RANDOM	 2)
+
+(define-foreign-procedure
+  (gcry_randomize (buffer '*) (length size_t) (level int) -> void)
+  #f)
 
 ;; Return a bytevector of size `length' filled with random numbers of strength 'level'.
 (define MAX_RND_SIZE 1e5)
@@ -40,6 +42,7 @@
   (define (valid-level?)
     (and (integer? level)
 	 (<= 0 level 2)))
+
   (define (valid-length?)
     (and (integer? length)
 	 (<= 0 length MAX_RND_SIZE)))
@@ -48,15 +51,15 @@
       (error "Invalid length. Expected length to be a postive integer." length)
       (if (not (valid-level?)) 
 	  (error "Invalid level." level)
-	  (let ([c_randomize
-		 (pointer->procedure void
-				     (dynamic-func "gcry_randomize" libgcrypt)
-				     (list '* size_t int))]
-		[bv (make-bytevector length)])
-	    (begin (c_randomize (bytevector->pointer bv)
-				length
-				level)
-		   bv)))))
+	  (let ([bv (make-bytevector length)])
+	    (gcry_randomize (bytevector->pointer bv)
+                            length
+                            level)
+            bv))))
+
+(define-foreign-procedure
+  (gcry_create_nonce (buffer '*) (length size_t) -> void)
+  #f)
 
 ;; Return a bytvector of size 'length' filled with random numbers.
 ;; This is an extra function
@@ -67,13 +70,10 @@
   (define (valid-length?)
     (and (integer? length)
 	 (<= 0 length MAX_RND_SIZE)))
+
   (if (not (valid-length?))
       (error "Invalid length. Expected length to be a postive integer." length)
-      (let ([c_create_nonce
-	     (pointer->procedure void
-				 (dynamic-func "gcry_create_nonce" libgcrypt)
-				 (list '* size_t))]
-	    [bv (make-bytevector length)])
-	(begin (c_create_nonce (bytevector->pointer bv)
-			       length)
-	       bv))))
+      (let ([bv (make-bytevector length)])
+	(gcry_create_nonce (bytevector->pointer bv)
+                           length)
+        bv)))

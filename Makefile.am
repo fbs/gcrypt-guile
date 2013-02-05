@@ -2,6 +2,7 @@ GUILE_FLAGS = -Wunbound-variable -Warity-mismatch -Wformat
 
 SOURCES = \
 	gcrypt/hash.scm \
+	gcrypt/internal.scm \
 	gcrypt/random.scm
 
 GOBJECTS = $(SOURCES:%.scm=%.go)
