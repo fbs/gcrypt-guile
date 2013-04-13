@@ -14,8 +14,7 @@ AM_INIT_AUTOMAKE()
 #AC_PROG_CC()
 #AM_PROG_CC_C_O()
 
-GUILE_PROGS()
-GUILE_SITE_DIR()
+GUILE_PROGS
 
 if $GUILE_TOOLS | grep -q compile; then
    # everything cool
@@ -25,9 +24,8 @@ else
 fi
 
 AM_PATH_LIBGCRYPT(1)
-PKG_CHECK_MODULES([GUILE], [guile-2.0])
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([env], [chmod +x env])
 
-AC_OUTPUT()
+AC_OUTPUT
