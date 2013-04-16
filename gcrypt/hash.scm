@@ -265,9 +265,14 @@ The return value is the digest as bytevector."
 
 (define (digest->hex-string digest)
   "Convert message digest @var{digest} to a hex-string.
- #vu8(1 11 16) -> \"1b10\"" 
-  (string-concatenate (map (lambda (x) (number->string x 16)) 
-			   (bytevector->u8-list digest))))
+ #vu8(1 22 36) 012235" 
+  (string-concatenate 
+   (map 
+    (lambda (x) 
+      (if (< x 15)
+          (string-append "0" (number->string x 16))
+          (number->string x 16))) 
+    (bytevector->u8-list digest))))
 
 (define (reset-buffer! hash)
   "Reset the buffer of hash-object @var{hash}."
